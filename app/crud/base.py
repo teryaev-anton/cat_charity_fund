@@ -1,7 +1,7 @@
 from typing import Optional
 
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import select
+from sqlalchemy import not_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User
@@ -74,3 +74,18 @@ class CRUDBase:
         await session.delete(db_obj)
         await session.commit()
         return db_obj
+
+    async def get_unclosed_objects(
+            self,
+            session: AsyncSession,
+    ):
+        """
+        Метод для получения списка объектов.
+        Список отсортирован по дате создания.
+        """
+        unclosed_objects = await session.execute(
+            select(self.model).where(
+                not_(self.model.fully_invested)
+            ).order_by(self.model.create_date))
+
+        return unclosed_objects.scalars().all()
